@@ -8,16 +8,25 @@ C# 15 introduces native `union` types and `closed` hierarchies—but raw syntact
 1. **Value-type boxing:** Syntactic `union` types store values in `object?`, allocating on every hot-path `Result<int, TError>`. RailwayForge hand-implements C# 15's `[Union]` / `IUnion` protocol with typed struct fields and `TryGetValue` accessors: **0 bytes allocated** across 1M+ iterations while retaining native C# 15 implicit conversions and exhaustive `switch` checking.
 2. **Silent discards (`RF0001`) & default unions (`RF0002`):** `RailwayForge.Analyzers` catches ignored `Result` return values, uninitialized `default`/`new()` unions, and ambiguous `Result<T, T>` (`RF0003`) at compile time.
 3. **Sync, `Task`, and `ValueTask` railway combinators:** C# 15 extension blocks for `Map`, `Bind`, `MapError`, `Ensure`, `Tap`, `TapError`, `Recover`, `OrElse`, `Match`, `Combine`, `Collect`, `Partition`, `TraverseAsync`, `ValidationBag<TError>`, and `Result.Try`/`TryAsync`.
-4. **Formally verified algebra:** [`formal/RailwayLaws.dfy`](formal/RailwayLaws.dfy) proves Functor, Monad, Short-Circuit, Guard, Recovery, and Multi-Error Accumulation soundness in Dafny 4.11 (**27 verified, 0 errors**).
+4. **Formally verified algebra:** [`formal/RailwayLaws.dfy`](formal/RailwayLaws.dfy) proves Functor, Monad, Short-Circuit, Guard, Recovery, Multi-Error Accumulation, 3-state `[Union]` Uninitialized-Unreachability, `Partition` Conservation, `Traverse` Fail-Fast First-Error, `ValidationBag` Monotonicity, and Append-Only History invariants in Dafny 4.11 (**46 verified, 0 errors**).
 
-## Packages
+## Benchmark (1,000,000 iterations, .NET 11.0.100 Release)
 
-| Package | Dependencies | Purpose |
+| Implementation | Time (1M ops) | Allocated |
 |---|---|---|
-| `RailwayForge` | **Zero** | Zero-boxing `[Union]` `Result<T, TError>`, `Result<TError>`, `Unit`, combinators, `Combine`/`Collect`/`ValidationBag`, optional `closed ForgeError` |
+| `RailwayForge` `[Union]` exhaustive `switch` | **1.60 ms** | **0 B** |
+| `RailwayForge` pipeline (`Map` + `Ensure` + `Recover`) | **8.25 ms** | **0 B** |
+| Syntactic boxed C# 15 `union` (`object?` backing store) | 26.97 ms | 24,000,000 B |
+
+## Packages & Interactive Web Demo
+
+| Project | Dependencies | Purpose |
+|---|---|---|
+| `RailwayForge` | **Zero** | Zero-boxing `[Union]` `Result<T, TError>`, `Result<TError>`, `Unit`, combinators, `Combine`/`Collect`/`Partition`/`TraverseAsync`/`ValidationBag`, optional `closed ForgeError` |
 | `RailwayForge.Analyzers` | Roslyn (dev only) | Compile-time diagnostics `RF0001` (must-use), `RF0002` (no default), `RF0003` (no `Result<T, T>`) |
 | `RailwayForge.AspNetCore` | `Microsoft.AspNetCore.App` | Exhaustive `ForgeError` & `IHttpError` → RFC 9457 `ProblemDetails` / Minimal API `IResult` |
 | `RailwayForge.OpenTelemetry` | **Zero** (BCL `System.Diagnostics`) | `ActivitySource.Trace`/`TraceAsync` span error tagging + `Meter("RailwayForge")` counters & latency histograms |
+| `samples/RailwayForge.WebDemo` | ASP.NET Core 11 | Interactive Order Fulfillment Railway & Append-Only Execution History playground with live RFC 9457 ProblemDetails inspector |
 
 ## Quick Start
 
@@ -80,11 +89,12 @@ var result = await activitySource.TraceAsync("orders.charge", () => ChargeOrderA
 | `RF0002` | Warning | Uninitialized `default` or parameterless `new()` construction of a Result union |
 | `RF0003` | Warning | `Result<T, TError>` uses identical types for `T` and `TError` (ambiguous union matching) |
 
-## Build, Test, Benchmark & Formal Verification
+## Build, Test, Demo, Benchmark & Formal Verification
 
 ```bash
 dotnet build RailwayForge.sln -c Release /warnaserror
 dotnet test RailwayForge.sln -c Release --no-build
+dotnet run --project samples/RailwayForge.WebDemo
 dotnet run -c Release --project benchmarks/RailwayForge.Bench
 dafny verify formal/RailwayLaws.dfy
 ```

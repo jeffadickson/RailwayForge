@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+    <Description>Interactive ASP.NET Core 11 web demo showcasing RailwayForge pipelines, step-by-step execution history, RFC 9457 ProblemDetails, and OpenTelemetry tracing.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\RailwayForge\RailwayForge.csproj" />
+    <ProjectReference Include="..\..\src\RailwayForge.AspNetCore\RailwayForge.AspNetCore.csproj" />
+    <ProjectReference Include="..\..\src\RailwayForge.OpenTelemetry\RailwayForge.OpenTelemetry.csproj" />
+    <ProjectReference Include="..\..\src\RailwayForge.Analyzers\RailwayForge.Analyzers.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false" />
+  </ItemGroup>
+
+</Project>

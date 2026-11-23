@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>RailwayForge — Live Railway Pipeline &amp; History Demo</title>
+  <style>
+    :root { --bg:#0d1117; --card:#161b22; --border:#30363d; --text:#e6edf3; --muted:#8b949e; --ok:#3fb950; --err:#f85149; --accent:#58a6ff; }
+    * { box-sizing: border-box; }
+    body { margin:0; font-family: system-ui, -apple-system, sans-serif; background:var(--bg); color:var(--text); }
+    header { padding:20px 28px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; }
+    header h1 { margin:0; font-size:20px; }
+    header span { color:var(--muted); font-size:13px; }
+    main { max-width:1200px; margin:0 auto; padding:24px; display:grid; grid-template-columns: 360px 1fr; gap:20px; }
+    @media (max-width:900px) { main { grid-template-columns:1fr; } }
+    .card { background:var(--card); border:1px solid var(--border); border-radius:10px; padding:18px; }
+    h2 { margin:0 0 12px; font-size:15px; text-transform:uppercase; letter-spacing:0.05em; color:var(--muted); }
+    label { display:block; font-size:12px; color:var(--muted); margin:10px 0 4px; }
+    input, select { width:100%; padding:8px 10px; border-radius:6px; border:1px solid var(--border); background:#0d1117; color:var(--text); }
+    .presets { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:12px; }
+    button { cursor:pointer; border-radius:6px; border:1px solid var(--border); background:#21262d; color:var(--text); padding:7px 10px; font-size:12px; }
+    button:hover { border-color:var(--accent); }
+    button.primary { background:var(--accent); color:#0d1117; font-weight:600; border:none; width:100%; margin-top:14px; padding:10px; font-size:14px; }
+    .tracks { display:grid; grid-template-columns: repeat(4, 1fr); gap:10px; margin-bottom:16px; }
+    .step { border:1px solid var(--border); border-radius:8px; padding:12px; background:#0d1117; }
+    .step.ok { border-color:var(--ok); }
+    .step.err { border-color:var(--err); }
+    .badge { display:inline-block; font-size:11px; font-weight:700; padding:2px 7px; border-radius:999px; }
+    .badge.ok { background:rgba(63,185,80,.2); color:var(--ok); }
+    .badge.err { background:rgba(248,81,73,.2); color:var(--err); }
+    .badge.skip { background:rgba(139,148,158,.15); color:var(--muted); }
+    pre { background:#0d1117; border:1px solid var(--border); border-radius:8px; padding:12px; overflow:auto; font-size:12px; max-height:240px; }
+    table { width:100%; border-collapse:collapse; font-size:13px; }
+    th, td { text-align:left; padding:8px; border-bottom:1px solid var(--border); }
+    tr.hist-row { cursor:pointer; }
+    tr.hist-row:hover { background:rgba(88,166,255,.08); }
+    .stats { display:flex; gap:16px; margin-bottom:12px; font-size:13px; }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <h1>RailwayForge — Interactive Order Railway &amp; Execution History</h1>
+      <span>.NET 11 / C# 15 Zero-Boxing [Union] Results · RFC 9457 ProblemDetails · Append-Only History</span>
+    </div>
+    <button onclick="restock()">Restock Demo Inventory</button>
+  </header>
+
+  <main>
+    <section class="card">
+      <h2>Scenario Presets</h2>
+      <div class="presets">
+        <button onclick="preset('ok')">✓ Happy Path (201)</button>
+        <button onclick="preset('multi')">✗ Multi-Validation (400)</button>
+        <button onclick="preset('notfound')">✗ Unknown SKU (404)</button>
+        <button onclick="preset('stock')">✗ Out of Stock (409)</button>
+        <button onclick="preset('unauth')">✗ Bad Token (401)</button>
+        <button onclick="preset('outage')">✗ Gateway Outage (503)</button>
+      </div>
+
+      <label>Customer Email</label>
+      <input id="email" value="engineer@testforge.io" />
+
+      <label>SKU</label>
+      <input id="sku" value="RF-PRO-100" />
+
+      <label>Quantity</label>
+      <input id="qty" type="number" value="2" />
+
+      <label>Payment Token</label>
+      <input id="token" value="tok_live_987654" />
+
+      <label><input id="outage" type="checkbox" style="width:auto;margin-right:6px" />Simulate Payment Gateway Outage (503)</label>
+
+      <button class="primary" onclick="submitOrder()">Run Railway Pipeline →</button>
+
+      <h2 style="margin-top:20px">Live Inventory</h2>
+      <div id="inventory"></div>
+    </section>
+
+    <section style="display:flex;flex-direction:column;gap:20px">
+      <div class="card">
+        <h2>Railway Track Inspector (4 Stages)</h2>
+        <div class="tracks" id="tracks"></div>
+        <h2>HTTP Response / RFC 9457 ProblemDetails</h2>
+        <pre id="response">Run a scenario to inspect the zero-boxing Result pipeline and HTTP ProblemDetails.</pre>
+      </div>
+
+      <div class="card">
+        <h2>Append-Only Execution History</h2>
+        <div class="stats" id="stats"></div>
+        <table>
+          <thead><tr><th>Run</th><th>Status</th><th>SKU × Qty</th><th>Error Code</th><th>Summary</th></tr></thead>
+          <tbody id="history"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const ALL_STEPS = ["ValidateOrder", "CheckInventory", "AuthorizePayment", "CommitOrder"];
+    let historyCache = [];
+
+    function preset(kind) {
+      document.getElementById('outage').checked = false;
+      if (kind === 'ok') { setForm('engineer@testforge.io', 'RF-PRO-100', 2, 'tok_live_987654', false); }
+      if (kind === 'multi') { setForm('not-an-email', '', 0, '', false); }
+      if (kind === 'notfound') { setForm('engineer@testforge.io', 'SKU-DOES-NOT-EXIST', 1, 'tok_live_987654', false); }
+      if (kind === 'stock') { setForm('engineer@testforge.io', 'RF-EMPTY-0', 5, 'tok_live_987654', false); }
+      if (kind === 'unauth') { setForm('engineer@testforge.io', 'RF-CELL-24', 1, 'invalid_token', false); }
+      if (kind === 'outage') { setForm('engineer@testforge.io', 'RF-CELL-24', 1, 'tok_live_987654', true); }
+      submitOrder();
+    }
+
+    function setForm(email, sku, qty, token, outage) {
+      document.getElementById('email').value = email;
+      document.getElementById('sku').value = sku;
+      document.getElementById('qty').value = qty;
+      document.getElementById('token').value = token;
+      document.getElementById('outage').checked = outage;
+    }
+
+    function renderTracks(steps) {
+      const byName = Object.fromEntries((steps || []).map(s => [s.name, s]));
+      document.getElementById('tracks').innerHTML = ALL_STEPS.map((name, idx) => {
+        const s = byName[name];
+        const cls = !s ? '' : s.track === 'Ok' ? 'ok' : 'err';
+        const badge = !s ? '<span class="badge skip">SKIPPED (short-circuit)</span>'
+          : s.track === 'Ok' ? '<span class="badge ok">GREEN · OK</span>'
+          : '<span class="badge err">RED · ERROR</span>';
+        return `<div class="step ${cls}">
+          <div style="font-size:11px;color:#8b949e">Stage ${idx + 1}</div>
+          <div style="font-weight:600;margin:4px 0">${name}</div>
+          ${badge}
+          <div style="font-size:11px;color:#8b949e;margin-top:6px">${s ? s.detail : 'Bypassed on error track'}</div>
+        </div>`;
+      }).join('');
+    }
+
+    async function submitOrder() {
+      const payload = {
+        customerEmail: document.getElementById('email').value,
+        sku: document.getElementById('sku').value,
+        quantity: Number(document.getElementById('qty').value),
+        paymentToken: document.getElementById('token').value,
+        simulateGatewayOutage: document.getElementById('outage').checked,
+      };
+      const resp = await fetch('/api/orders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const body = await resp.json();
+      document.getElementById('response').textContent = `HTTP ${resp.status}\n` + JSON.stringify(body, null, 2);
+      await refreshAll();
+      if (historyCache.length > 0) renderTracks(historyCache[0].steps);
+    }
+
+    async function restock() {
+      await fetch('/api/inventory/restock', { method: 'POST' });
+      await refreshAll();
+    }
+
+    async function refreshAll() {
+      const [inv, hist] = await Promise.all([
+        fetch('/api/inventory').then(r => r.json()),
+        fetch('/api/history').then(r => r.json()),
+      ]);
+      document.getElementById('inventory').innerHTML = inv.map(i =>
+        `<div style="display:flex;justify-content:space-between;font-size:12px;padding:4px 0;border-bottom:1px solid #21262d">
+          <span><code>${i.sku}</code> ${i.name}</span><strong>${i.stock} left</strong>
+        </div>`).join('');
+
+      document.getElementById('stats').innerHTML =
+        `<span>Total runs: <strong>${hist.total}</strong></span>` +
+        `<span style="color:#3fb950">Succeeded: <strong>${hist.succeeded}</strong></span>` +
+        `<span style="color:#f85149">Failed: <strong>${hist.failed}</strong></span>`;
+
+      historyCache = hist.entries;
+      document.getElementById('history').innerHTML = hist.entries.map((h, i) => `
+        <tr class="hist-row" onclick="inspectHistory(${i})">
+          <td><code>${h.runId}</code></td>
+          <td><span class="badge ${h.succeeded ? 'ok' : 'err'}">${h.httpStatus}</span></td>
+          <td><code>${h.input.sku || '(empty)'}</code> × ${h.input.quantity}</td>
+          <td>${h.errorCode || '—'}</td>
+          <td>${h.summary}</td>
+        </tr>`).join('');
+    }
+
+    function inspectHistory(index) {
+      const h = historyCache[index];
+      if (!h) return;
+      renderTracks(h.steps);
+      document.getElementById('response').textContent = JSON.stringify(h, null, 2);
+    }
+
+    renderTracks([]);
+    refreshAll();
+  </script>
+</body>
+</html>

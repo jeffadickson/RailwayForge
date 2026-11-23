@@ -15,6 +15,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RailwayForge.Bench", "bench
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RailwayForge.Tests", "tests\RailwayForge.Tests\RailwayForge.Tests.csproj", "{DD859766-314A-452E-BC5D-0958356BCEA2}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RailwayForge.WebDemo", "samples\RailwayForge.WebDemo\RailwayForge.WebDemo.csproj", "{8EEC1FED-49DB-471B-8FCF-6CA53D2C7EF0}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -97,6 +99,18 @@ Global
 		{DD859766-314A-452E-BC5D-0958356BCEA2}.Release|x64.Build.0 = Release|Any CPU
 		{DD859766-314A-452E-BC5D-0958356BCEA2}.Release|x86.ActiveCfg = Release|Any CPU
 		{DD859766-314A-452E-BC5D-0958356BCEA2}.Release|x86.Build.0 = Release|Any CPU
+		{8EEC1FED-49DB-471B-8FCF-6CA53D2C7EF0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8EEC1FED-49DB-471B-8FCF-6CA53D2C7EF0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8EEC1FED-49DB-471B-8FCF-6CA53D2C7EF0}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{8EEC1FED-49DB-471B-8FCF-6CA53D2C7EF0}.Debug|x64.Build.0 = Debug|Any CPU
+		{8EEC1FED-49DB-471B-8FCF-6CA53D2C7EF0}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{8EEC1FED-49DB-471B-8FCF-6CA53D2C7EF0}.Debug|x86.Build.0 = Debug|Any CPU
+		{8EEC1FED-49DB-471B-8FCF-6CA53D2C7EF0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8EEC1FED-49DB-471B-8FCF-6CA53D2C7EF0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8EEC1FED-49DB-471B-8FCF-6CA53D2C7EF0}.Release|x64.ActiveCfg = Release|Any CPU
+		{8EEC1FED-49DB-471B-8FCF-6CA53D2C7EF0}.Release|x64.Build.0 = Release|Any CPU
+		{8EEC1FED-49DB-471B-8FCF-6CA53D2C7EF0}.Release|x86.ActiveCfg = Release|Any CPU
+		{8EEC1FED-49DB-471B-8FCF-6CA53D2C7EF0}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
