@@ -44,9 +44,14 @@ jobs:
             --skip-duplicate
 
       - name: Push to NuGet.org (when NUGET_API_KEY secret is configured)
-        if: ${{ secrets.NUGET_API_KEY != '' }}
+        env:
+          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
         run: |
-          dotnet nuget push ./artifacts/nupkg/*.nupkg \
-            --source "https://api.nuget.org/v3/index.json" \
-            --api-key "${{ secrets.NUGET_API_KEY }}" \
-            --skip-duplicate
+          if [ -n "$NUGET_API_KEY" ]; then
+            dotnet nuget push ./artifacts/nupkg/*.nupkg \
+              --source "https://api.nuget.org/v3/index.json" \
+              --api-key "$NUGET_API_KEY" \
+              --skip-duplicate
+          else
+            echo "NUGET_API_KEY not configured; skipping NuGet.org push."
+          fi
