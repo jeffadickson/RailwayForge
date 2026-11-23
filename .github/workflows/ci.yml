@@ -1,0 +1,42 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-test-verify:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 11
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '11.0.x'
+
+      - name: Build (zero warnings)
+        run: dotnet build RailwayForge.sln -c Release --no-incremental /warnaserror
+
+      - name: Test
+        run: dotnet test RailwayForge.sln -c Release --no-build --verbosity normal
+
+      - name: Zero-Allocation Benchmark
+        run: dotnet run -c Release --no-build --project benchmarks/RailwayForge.Bench
+
+      - name: Pack NuGet Packages
+        run: |
+          for proj in src/RailwayForge src/RailwayForge.Analyzers src/RailwayForge.AspNetCore src/RailwayForge.OpenTelemetry; do
+            dotnet pack "$proj" -c Release --no-build -o ./artifacts/nupkg
+          done
+
+      - name: Formal Verification (Dafny)
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq z3
+          dotnet tool install -g dafny --version 4.11.0
+          export PATH="$HOME/.dotnet/tools:$PATH"
+          dafny verify formal/RailwayLaws.dfy --solver-path "$(which z3)"

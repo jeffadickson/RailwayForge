@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <PackageId>RailwayForge.OpenTelemetry</PackageId>
+    <Description>Zero-dependency OpenTelemetry System.Diagnostics Activity and Meter instrumentation for RailwayForge Results.</Description>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\RailwayForge\RailwayForge.csproj" />
+    <ProjectReference Include="..\RailwayForge.Analyzers\RailwayForge.Analyzers.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false" />
+  </ItemGroup>
+
+</Project>
