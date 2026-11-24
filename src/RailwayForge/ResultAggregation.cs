@@ -26,8 +26,11 @@ public static partial class Result
     {
         List<TError>? errors = null;
         if (r1.TryGetError(out var e1)) (errors ??= []).Add(e1);
+        else if (r1.IsUninitialized) throw new InvalidOperationException("Uninitialized Result in Combine.");
         if (r2.TryGetError(out var e2)) (errors ??= []).Add(e2);
+        else if (r2.IsUninitialized) throw new InvalidOperationException("Uninitialized Result in Combine.");
         if (r3.TryGetError(out var e3)) (errors ??= []).Add(e3);
+        else if (r3.IsUninitialized) throw new InvalidOperationException("Uninitialized Result in Combine.");
 
         return errors is not null
             ? new Result<(T1, T2, T3), IReadOnlyList<TError>>(errors)
@@ -43,14 +46,34 @@ public static partial class Result
     {
         List<TError>? errors = null;
         if (r1.TryGetError(out var e1)) (errors ??= []).Add(e1);
+        else if (r1.IsUninitialized) throw new InvalidOperationException("Uninitialized Result in Combine.");
         if (r2.TryGetError(out var e2)) (errors ??= []).Add(e2);
+        else if (r2.IsUninitialized) throw new InvalidOperationException("Uninitialized Result in Combine.");
         if (r3.TryGetError(out var e3)) (errors ??= []).Add(e3);
+        else if (r3.IsUninitialized) throw new InvalidOperationException("Uninitialized Result in Combine.");
         if (r4.TryGetError(out var e4)) (errors ??= []).Add(e4);
+        else if (r4.IsUninitialized) throw new InvalidOperationException("Uninitialized Result in Combine.");
 
         return errors is not null
             ? new Result<(T1, T2, T3, T4), IReadOnlyList<TError>>(errors)
             : new Result<(T1, T2, T3, T4), IReadOnlyList<TError>>(
                 (r1.UnsafeValue, r2.UnsafeValue, r3.UnsafeValue, r4.UnsafeValue));
+    }
+
+    /// <summary>Combines two void-equivalent results, accumulating all errors if either or both fail.</summary>
+    public static Result<IReadOnlyList<TError>> Combine<TError>(
+        Result<TError> r1,
+        Result<TError> r2)
+    {
+        List<TError>? errors = null;
+        if (r1.TryGetError(out var e1)) (errors ??= []).Add(e1);
+        else if (r1.IsUninitialized) throw new InvalidOperationException("Uninitialized Result in Combine.");
+        if (r2.TryGetError(out var e2)) (errors ??= []).Add(e2);
+        else if (r2.IsUninitialized) throw new InvalidOperationException("Uninitialized Result in Combine.");
+
+        return errors is not null
+            ? new Result<IReadOnlyList<TError>>(errors)
+            : new Result<IReadOnlyList<TError>>(Unit.Value);
     }
 
     /// <summary>
@@ -83,6 +106,27 @@ public static partial class Result
             : new Result<IReadOnlyList<T>, IReadOnlyList<TError>>(values);
     }
 
+    /// <summary>
+    /// Collects a sequence of void-equivalent results, returning <see cref="Unit.Value"/> if all succeeded
+    /// or all accumulated errors in order if one or more failed.
+    /// </summary>
+    public static Result<IReadOnlyList<TError>> Collect<TError>(
+        IEnumerable<Result<TError>> results)
+    {
+        List<TError>? errors = null;
+        foreach (var r in results)
+        {
+            if (r.IsError)
+                (errors ??= []).Add(r.UnsafeError);
+            else if (r.IsUninitialized)
+                throw new InvalidOperationException("Uninitialized Result in Collect.");
+        }
+
+        return errors is not null
+            ? new Result<IReadOnlyList<TError>>(errors)
+            : new Result<IReadOnlyList<TError>>(Unit.Value);
+    }
+
     /// <summary>Splits a sequence of results into separate lists of successes and errors.</summary>
     public static (IReadOnlyList<T> Values, IReadOnlyList<TError> Errors) Partition<T, TError>(
         IEnumerable<Result<T, TError>> results)
@@ -96,6 +140,25 @@ public static partial class Result
             else throw new InvalidOperationException("Uninitialized Result in Partition.");
         }
         return (values, errors);
+    }
+
+    /// <summary>
+    /// Applies a synchronous result-producing projection across <paramref name="items"/>,
+    /// short-circuiting on the first error.
+    /// </summary>
+    public static Result<IReadOnlyList<TOut>, TError> Traverse<TIn, TOut, TError>(
+        IEnumerable<TIn> items,
+        Func<TIn, Result<TOut, TError>> selector)
+    {
+        List<TOut> values = [];
+        foreach (var item in items)
+        {
+            var res = selector(item);
+            if (res.IsError) return new Result<IReadOnlyList<TOut>, TError>(res.UnsafeError);
+            if (res.IsUninitialized) throw new InvalidOperationException("Uninitialized Result in Traverse.");
+            values.Add(res.UnsafeValue);
+        }
+        return new Result<IReadOnlyList<TOut>, TError>(values);
     }
 
     /// <summary>

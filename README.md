@@ -1,13 +1,13 @@
 # RailwayForge
 
-**Zero-boxing `.NET 11 / C# 15` Errors-as-Values & Railway-Oriented Programming suite**, backed by native C# 15 `[Union]` structs, Roslyn compile-time `#[must_use]` analyzers, RFC 9457 ASP.NET Core `ProblemDetails`, zero-dependency OpenTelemetry instrumentation, and **Dafny-verified monad & functor laws**.
+**Zero-boxing `.NET 10 / .NET 11 (C# 15)` Errors-as-Values & Railway-Oriented Programming suite**, backed by native C# 15 `[Union]` structs on .NET 11 (with identical zero-boxing stack layout on .NET 10), Roslyn compile-time `#[must_use]` analyzers, RFC 9457 ASP.NET Core `ProblemDetails`, zero-dependency OpenTelemetry instrumentation, and **Dafny-verified monad & functor laws**.
 
 ## Why RailwayForge?
 
 C# 15 introduces native `union` types and `closed` hierarchies—but raw syntactic `union Result<T, E>(T, E)` declarations still leave critical production gaps:
-1. **Value-type boxing:** Syntactic `union` types store values in `object?`, allocating on every hot-path `Result<int, TError>`. RailwayForge hand-implements C# 15's `[Union]` / `IUnion` protocol with typed struct fields and `TryGetValue` accessors: **0 bytes allocated** across 1M+ iterations while retaining native C# 15 implicit conversions and exhaustive `switch` checking.
+1. **Value-type boxing:** Syntactic `union` types store values in `object?`, allocating on every hot-path `Result<int, TError>`. RailwayForge hand-implements C# 15's `[Union]` / `IUnion` protocol with typed struct fields, `[MethodImpl(AggressiveInlining)]`, `TryGetValue` accessors, and closure-free state-passing combinators: **0 bytes allocated** across 1M+ iterations while retaining native C# 15 implicit conversions and exhaustive `switch` checking on .NET 11.
 2. **Silent discards (`RF0001`) & default unions (`RF0002`):** `RailwayForge.Analyzers` catches ignored `Result` return values, uninitialized `default`/`new()` unions, and ambiguous `Result<T, T>` (`RF0003`) at compile time.
-3. **Sync, `Task`, and `ValueTask` railway combinators:** C# 15 extension blocks for `Map`, `Bind`, `MapError`, `Ensure`, `Tap`, `TapError`, `Recover`, `OrElse`, `Match`, `Combine`, `Collect`, `Partition`, `TraverseAsync`, `ValidationBag<TError>`, and `Result.Try`/`TryAsync`.
+3. **Sync, `Task`, and `ValueTask` railway combinators + boundary adapters:** C# 15 extension blocks for `Map`, `Bind`, `MapError`, `Ensure`, `Tap`, `TapError`, `Recover`, `OrElse`, `OrThrow`, `Match`, `Switch`, state-passing zero-alloc overloads, `Combine`, `Collect`, `Partition`, `Traverse`/`TraverseAsync`, `ValidationBag<TError>`, and `Result.FromCondition`/`FromNullable`/`FromTry`/`Try`/`TryAsync`/`TryValueTaskAsync`.
 4. **Formally verified algebra:** [`formal/RailwayLaws.dfy`](formal/RailwayLaws.dfy) proves Functor, Monad, Short-Circuit, Guard, Recovery, Multi-Error Accumulation, 3-state `[Union]` Uninitialized-Unreachability, `Partition` Conservation, `Traverse` Fail-Fast First-Error, `ValidationBag` Monotonicity, and Append-Only History invariants in Dafny 4.11 (**46 verified, 0 errors**).
 
 ## Benchmark (1,000,000 iterations, .NET 11.0.100 Release)
@@ -20,13 +20,13 @@ C# 15 introduces native `union` types and `closed` hierarchies—but raw syntact
 
 ## Packages & Interactive Web Demo
 
-| Project | Dependencies | Purpose |
-|---|---|---|
-| `RailwayForge` | **Zero** | Zero-boxing `[Union]` `Result<T, TError>`, `Result<TError>`, `Unit`, combinators, `Combine`/`Collect`/`Partition`/`TraverseAsync`/`ValidationBag`, optional `closed ForgeError` |
-| `RailwayForge.Analyzers` | Roslyn (dev only) | Compile-time diagnostics `RF0001` (must-use), `RF0002` (no default), `RF0003` (no `Result<T, T>`) |
-| `RailwayForge.AspNetCore` | `Microsoft.AspNetCore.App` | Exhaustive `ForgeError` & `IHttpError` → RFC 9457 `ProblemDetails` / Minimal API `IResult` |
-| `RailwayForge.OpenTelemetry` | **Zero** (BCL `System.Diagnostics`) | `ActivitySource.Trace`/`TraceAsync` span error tagging + `Meter("RailwayForge")` counters & latency histograms |
-| `samples/RailwayForge.WebDemo` | ASP.NET Core 11 | Interactive Order Fulfillment Railway & Append-Only Execution History playground with live RFC 9457 ProblemDetails inspector |
+| Project | Target Frameworks | Dependencies | Purpose |
+|---|---|---|---|
+| `RailwayForge` | `net10.0;net11.0` | **Zero** | Zero-boxing `[Union]` `Result<T, TError>`, `Result<TError>`, `Unit`, combinators, `Combine`/`Collect`/`Partition`/`Traverse`/`ValidationBag`, boundary adapters, optional `closed ForgeError`, zero `CS1591` warnings |
+| `RailwayForge.Analyzers` | `netstandard2.0` | Roslyn (dev only) | Compile-time diagnostics `RF0001` (must-use), `RF0002` (no default), `RF0003` (no `Result<T, T>`) |
+| `RailwayForge.AspNetCore` | `net11.0` | `Microsoft.AspNetCore.App` | Exhaustive `ForgeError` & `IHttpError` → RFC 9457 `ProblemDetails` / Minimal API `IResult` |
+| `RailwayForge.OpenTelemetry` | `net10.0;net11.0` | **Zero** (BCL `System.Diagnostics`) | `ActivitySource.Trace`/`TraceAsync` span error tagging + `Meter("RailwayForge")` counters & latency histograms for both `Result<T, TError>` and `Result<TError>` |
+| `samples/RailwayForge.WebDemo` | `net11.0` | ASP.NET Core 11 | Interactive Order Fulfillment Railway & Append-Only Execution History playground with live RFC 9457 ProblemDetails inspector |
 
 ## Quick Start
 

@@ -7,7 +7,7 @@
     <Deterministic>true</Deterministic>
     <AnalysisLevel>latest</AnalysisLevel>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
-    <Version>1.0.0</Version>
+    <Version>1.1.0</Version>
     <Authors>Jeff Dickson</Authors>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <RepositoryUrl>https://github.com/jeffadickson/RailwayForge</RepositoryUrl>
